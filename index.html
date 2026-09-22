@@ -1,0 +1,342 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Free Store Signup</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Poppins:ital,wght@0,400;0,500;0,600;0,700&display=swap">
+<style>
+  /* ============================================================
+     BuildYourStore — signup / user details step
+     Structure and copy mirror the Dropship Stores page 1:1.
+     Same token set as the "Answer the call" screen.
+     ============================================================ */
+  :root{
+    --pink:#ff0061;
+    --pink-dark:#e20056;
+    --teal:#009a7b;
+    --teal-80:#007069;
+    --teal-light:#e1f2ea;
+    --green:#5ce099;
+
+    --ink:#0c1413;
+    --ink-soft:#4f5d59;
+    --ink-faint:#7d8a86;
+    --line-strong:#cfdcd7;
+    --surface:#ffffff;
+    --danger:#d4183d;
+
+    --ground-1:#f6fbb2;
+    --ground-2:#d6f7c2;
+    --ground-3:#b3efdc;
+    --ground-4:#a6e6f6;
+
+    --radius-ctl:12px;
+  }
+
+  *{box-sizing:border-box}
+  html,body{height:100%}
+
+  body{
+    margin:0;
+    font-family:Poppins,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;
+    color:var(--ink);
+    background:var(--ground-2);
+    background-image:linear-gradient(107deg,var(--ground-1) 0%,var(--ground-2) 34%,var(--ground-3) 66%,var(--ground-4) 100%);
+    background-attachment:fixed;
+    -webkit-font-smoothing:antialiased;
+  }
+
+  .brand{display:flex;justify-content:center;padding:26px 16px 0}
+  .logo{display:flex;align-items:center;gap:8px;text-decoration:none}
+  .logo svg{display:block;flex:none}
+  .logo-word{font-weight:700;font-size:17px;letter-spacing:-.01em;color:var(--ink);line-height:1;white-space:nowrap}
+  .logo-word em{font-style:normal;color:var(--teal)}
+
+  .page{
+    min-height:calc(100% - 60px);
+    display:flex;flex-direction:column;align-items:center;justify-content:center;
+    padding-inline:16px;
+    padding-block:28px 48px;
+  }
+  .col{width:100%;max-width:430px;text-align:center}
+
+  .eyebrow{
+    display:inline-block;
+    padding:7px 16px;border-radius:99px;
+    background:var(--teal-light);color:var(--teal-80);
+    font-size:11px;font-weight:600;letter-spacing:.14em;text-transform:uppercase;
+  }
+
+  h1{
+    margin:16px 0 0;
+    font-size:clamp(26px,6.2vw,34px);
+    font-weight:700;letter-spacing:-.02em;line-height:1.12;text-wrap:balance;
+  }
+  h1 em{font-style:normal;color:var(--teal)}
+
+  .lede{
+    margin:12px auto 0;max-width:38ch;
+    font-size:14px;line-height:1.55;color:var(--ink-soft);
+  }
+
+  /* ---------- form ---------- */
+  form{margin-top:26px;display:grid;gap:16px;text-align:left}
+  .field{display:grid;gap:6px}
+  label{font-size:13px;font-weight:600;letter-spacing:-.01em}
+
+  input[type="text"],input[type="email"],input[type="tel"],select{
+    font-family:inherit;font-size:16px;color:var(--ink);
+    padding:14px 15px;border:1.5px solid var(--line-strong);border-radius:var(--radius-ctl);
+    background:var(--surface);width:100%;
+    transition:border-color .16s ease,box-shadow .16s ease;
+  }
+  input::placeholder{color:#a8b3b0}
+  input:focus,select:focus{
+    outline:none;border-color:var(--teal);
+    box-shadow:0 0 0 3px rgba(0,154,123,.16);
+  }
+  .phone-row{display:flex;gap:10px}
+  .phone-row select{
+    width:auto;flex:none;min-width:116px;
+    font-weight:500;font-variant-numeric:tabular-nums;
+    appearance:none;
+    background-image:url("data:image/svg+xml;charset=utf-8,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' fill='none' stroke='%234f5d59' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M1 1.5 6 6.5l5-5'/%3E%3C/svg%3E");
+    background-repeat:no-repeat;background-position:right 13px center;
+    padding-right:34px;
+  }
+  .phone-row input{flex:1;min-width:0;font-variant-numeric:tabular-nums}
+
+  .error{
+    display:none;font-size:12.5px;font-weight:500;color:var(--danger);
+    align-items:center;gap:6px;margin:0;
+  }
+  .field.invalid .error{display:flex}
+  .field.invalid input,.field.invalid select{border-color:var(--danger)}
+  .field.invalid input:focus{box-shadow:0 0 0 3px rgba(212,24,61,.15)}
+
+  .cta{
+    margin-top:2px;width:100%;position:relative;
+    display:flex;align-items:center;justify-content:center;
+    padding:18px 48px;border:0;border-radius:var(--radius-ctl);
+    font-family:inherit;font-size:17px;font-weight:600;letter-spacing:-.01em;
+    background:var(--pink);color:#fff;cursor:pointer;
+    box-shadow:0 12px 26px -12px rgba(255,0,97,.9);
+    transition:background .18s ease,transform .12s ease;
+  }
+  .cta .arrow{
+    position:absolute;right:10px;top:50%;transform:translateY(-50%);
+    width:30px;height:30px;border-radius:50%;
+    background:rgba(255,255,255,.22);
+    display:grid;place-items:center;
+  }
+  .cta:hover{background:var(--pink-dark)}
+  .cta:active{transform:translateY(1px)}
+  .cta:focus-visible{outline:3px solid var(--teal);outline-offset:3px}
+  .cta[aria-busy="true"]{background:var(--ink-faint);box-shadow:none;cursor:progress}
+  .cta[aria-busy="true"] .arrow{display:none}
+
+  .secure{
+    display:flex;align-items:center;justify-content:center;gap:7px;
+    margin:0;font-size:13px;font-weight:500;color:var(--ink-soft);
+  }
+  .secure svg{color:var(--teal);flex:none}
+
+  .legal{
+    margin:0;text-align:center;font-size:11.5px;line-height:1.6;color:var(--ink-faint);
+  }
+  .legal a{color:var(--ink-soft)}
+
+  /* ---------- success state ---------- */
+  .done{display:none;text-align:center}
+  .done.show{display:block}
+  form.hide,.lede.hide{display:none}
+  .done-mark{
+    width:60px;height:60px;border-radius:50%;margin:26px auto 16px;
+    background:var(--teal-light);color:var(--teal);
+    display:grid;place-items:center;
+  }
+  .done h2{margin:0;font-size:22px;font-weight:700;letter-spacing:-.02em}
+  .done p{margin:10px auto 0;max-width:36ch;font-size:14px;line-height:1.55;color:var(--ink-soft)}
+  .done b{color:var(--ink);font-variant-numeric:tabular-nums;white-space:nowrap}
+  .done .cta{max-width:320px;margin:20px auto 0;text-decoration:none}
+
+  @media (max-width:520px){
+    .brand{padding-top:20px}
+    .phone-row select{min-width:104px}
+  }
+
+  @media (prefers-reduced-motion:reduce){
+    *,*::before,*::after{transition-duration:.001ms!important;animation-duration:.001ms!important}
+  }
+</style>
+</head>
+<body>
+<div class="brand">
+  <a class="logo" href="#" aria-label="BuildYourStore">
+    <svg width="26" height="31" viewBox="0 0 28 33" fill="none" aria-hidden="true">
+      <path d="M1.88432 9.57007C2.10387 7.53917 3.81841 6 5.86115 6H22.1389C24.1816 6 25.8961 7.53917 26.1157 9.57007L27.5211 22.5701C27.7768 24.9356 25.9236 27 23.5443 27H4.45574C2.07644 27 0.22318 24.9356 0.478911 22.5701L1.88432 9.57007Z" fill="#009A7B"></path>
+      <path d="M21 12C21 15.866 17.866 19 14 19C10.134 19 7 15.866 7 12" stroke="white" stroke-width="2.5" stroke-linecap="round"></path>
+    </svg>
+    <span class="logo-word">BUILD<em>YOUR</em>STORE</span>
+  </a>
+</div>
+
+<main class="page">
+  <div class="col">
+    <span class="eyebrow">Almost there</span>
+
+    <h1>You're two minutes from your <em>free store</em>.</h1>
+
+    <p class="lede" id="lede">
+      The store, 10 winning products, full course and a call with our AI Agent.
+      No card, nothing to pay.
+    </p>
+
+    <form id="signup" novalidate>
+      <div class="field" id="f-name">
+        <label for="fullname">Full Name</label>
+        <input type="text" id="fullname" name="fullname" placeholder="Enter your full name" autocomplete="name" required>
+        <p class="error"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 7.5v5M12 16.2v.1"/></svg> Enter your full name.</p>
+      </div>
+
+      <div class="field" id="f-email">
+        <label for="email">Email</label>
+        <input type="email" id="email" name="email" placeholder="Enter your email" autocomplete="email" inputmode="email" required>
+        <p class="error"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 7.5v5M12 16.2v.1"/></svg> That email doesn't look right.</p>
+      </div>
+
+      <div class="field" id="f-phone">
+        <label for="phone">Phone Number</label>
+        <div class="phone-row">
+          <select id="dialcode" name="dialcode" aria-label="Country dialling code">
+            <option value="+1" data-iso="US" selected>US +1</option>
+            <option value="+1" data-iso="CA">CA +1</option>
+            <option value="+44" data-iso="GB">UK +44</option>
+            <option value="+61" data-iso="AU">AU +61</option>
+            <option value="+64" data-iso="NZ">NZ +64</option>
+            <option value="+353" data-iso="IE">IE +353</option>
+            <option value="+49" data-iso="DE">DE +49</option>
+            <option value="+33" data-iso="FR">FR +33</option>
+            <option value="+31" data-iso="NL">NL +31</option>
+            <option value="+972" data-iso="IL">IL +972</option>
+          </select>
+          <input type="tel" id="phone" name="phone" placeholder="(415) 555-0132" autocomplete="tel-national" inputmode="tel" required>
+        </div>
+        <p class="error"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 7.5v5M12 16.2v.1"/></svg> Enter a number we can reach you on.</p>
+      </div>
+
+      <button class="cta" type="submit" id="submit">
+        <span id="submitLabel">Get my FREE store &amp; Course</span>
+        <span class="arrow" aria-hidden="true">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12h14M12 6l6 6-6 6"/></svg>
+        </span>
+      </button>
+
+      <p class="secure">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="4" y="11" width="16" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg>
+        Your information is 100% secure.
+      </p>
+
+      <p class="legal">
+        By submitting, you agree to our <a href="#">Terms</a> and
+        <a href="#">Privacy Policy</a>. NO-SPAM. Opt out anytime.
+      </p>
+    </form>
+
+    <div class="done" id="done" role="status">
+      <div class="done-mark">
+        <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m4 12.5 5 5L20 6.5"/></svg>
+      </div>
+      <h2>Your store is being built.</h2>
+      <p>We're calling <b id="donephone">+1 (415) 555-0132</b> in the next few seconds. Keep your phone nearby.</p>
+      <a class="cta" id="continue" href="#">
+        <span>Continue</span>
+        <span class="arrow" aria-hidden="true">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12h14M12 6l6 6-6 6"/></svg>
+        </span>
+      </a>
+    </div>
+  </div>
+</main>
+
+<script>
+(function(){
+  "use strict";
+
+  var NEXT_SCREEN = "/call"; // the "Answer the call" screen
+
+  var form  = document.getElementById('signup');
+  var done  = document.getElementById('done');
+  var lede  = document.getElementById('lede');
+  var btn   = document.getElementById('submit');
+  var label = document.getElementById('submitLabel');
+  var cont  = document.getElementById('continue');
+
+  var fields = {
+    name:  {wrap: document.getElementById('f-name'),  el: document.getElementById('fullname'),
+            ok: function(v){ return v.trim().length >= 2; }},
+    email: {wrap: document.getElementById('f-email'), el: document.getElementById('email'),
+            ok: function(v){ return /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(v.trim()); }},
+    phone: {wrap: document.getElementById('f-phone'), el: document.getElementById('phone'),
+            ok: function(v){ return v.replace(/\D/g,'').length >= 7; }}
+  };
+
+  Object.keys(fields).forEach(function(k){
+    var f = fields[k];
+    f.el.addEventListener('input', function(){
+      if (f.wrap.classList.contains('invalid') && f.ok(f.el.value)) f.wrap.classList.remove('invalid');
+    });
+    f.el.addEventListener('blur', function(){
+      if (f.el.value !== '' && !f.ok(f.el.value)) f.wrap.classList.add('invalid');
+    });
+  });
+
+  form.addEventListener('submit', function(e){
+    e.preventDefault();
+
+    var first = null;
+    Object.keys(fields).forEach(function(k){
+      var f = fields[k], good = f.ok(f.el.value);
+      f.wrap.classList.toggle('invalid', !good);
+      if (!good && !first) first = f.el;
+    });
+    if (first){ first.focus(); return; }
+
+    /* ------------------------------------------------------------------
+       PRODUCTION HOOK — hand-off to the calling partner.
+       Delivery method still TBD (webhook / their API / batch file), so the
+       payload is assembled here and the transport is the only thing left
+       to fill in. Store phone in E.164 either way.
+       ------------------------------------------------------------------ */
+    var dial   = document.getElementById('dialcode').value;
+    var digits = fields.phone.el.value.replace(/\D/g,'');
+    var lead = {
+      full_name  : fields.name.el.value.trim(),
+      email      : fields.email.el.value.trim(),
+      phone_e164 : dial + digits,
+      country    : document.getElementById('dialcode').selectedOptions[0].dataset.iso,
+      user_id    : null,                 // filled once the account is created
+      source     : 'buildyourstore_signup',
+      created_at : new Date().toISOString()
+    };
+    // TODO: send `lead` the way the partner asks for it.
+    if (window.console) console.log('lead', lead);
+
+    btn.setAttribute('aria-busy','true');
+    label.textContent = 'Building your store…';
+    document.getElementById('donephone').textContent = lead.phone_e164;
+
+    setTimeout(function(){
+      form.classList.add('hide');
+      lede.classList.add('hide');
+      done.classList.add('show');
+      cont.setAttribute('href', NEXT_SCREEN);
+    }, 900);
+  });
+})();
+</script>
+</body>
+</html>

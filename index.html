@@ -198,14 +198,14 @@
     <form id="signup" novalidate>
       <div class="field" id="f-name">
         <label for="fullname">Full Name</label>
-        <input type="text" id="fullname" name="fullname" placeholder="Enter your full name" autocomplete="name" required>
-        <p class="error"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 7.5v5M12 16.2v.1"/></svg> Enter your full name.</p>
+        <input type="text" id="fullname" name="fullname" placeholder="Enter your full name" autocomplete="name" aria-describedby="e-name" aria-invalid="false" required>
+        <p class="error" id="e-name"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 7.5v5M12 16.2v.1"/></svg> <span class="error-text">Please enter your full name.</span></p>
       </div>
 
       <div class="field" id="f-email">
         <label for="email">Email</label>
-        <input type="email" id="email" name="email" placeholder="Enter your email" autocomplete="email" inputmode="email" required>
-        <p class="error"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 7.5v5M12 16.2v.1"/></svg> That email doesn't look right.</p>
+        <input type="email" id="email" name="email" placeholder="Enter your email" autocomplete="email" inputmode="email" aria-describedby="e-email" aria-invalid="false" required>
+        <p class="error" id="e-email"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 7.5v5M12 16.2v.1"/></svg> <span class="error-text">Please enter your email.</span></p>
       </div>
 
       <div class="field" id="f-phone">
@@ -223,9 +223,9 @@
             <option value="+31" data-iso="NL">NL +31</option>
             <option value="+972" data-iso="IL">IL +972</option>
           </select>
-          <input type="tel" id="phone" name="phone" placeholder="(415) 555-0132" autocomplete="tel-national" inputmode="tel" required>
+          <input type="tel" id="phone" name="phone" placeholder="(415) 555-0132" autocomplete="tel-national" inputmode="tel" aria-describedby="e-phone" aria-invalid="false" required>
         </div>
-        <p class="error"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 7.5v5M12 16.2v.1"/></svg> Enter a number we can reach you on.</p>
+        <p class="error" id="e-phone"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 7.5v5M12 16.2v.1"/></svg> <span class="error-text">Please enter your phone number.</span></p>
       </div>
 
       <button class="cta" type="submit" id="submit">
@@ -268,30 +268,116 @@
 
   var NEXT_SCREEN = "/call"; // the "Answer the call" screen
 
-  var form  = document.getElementById('signup');
-  var done  = document.getElementById('done');
-  var lede  = document.getElementById('lede');
-  var btn   = document.getElementById('submit');
-  var label = document.getElementById('submitLabel');
-  var cont  = document.getElementById('continue');
-
-  var fields = {
-    name:  {wrap: document.getElementById('f-name'),  el: document.getElementById('fullname'),
-            ok: function(v){ return v.trim().length >= 2; }},
-    email: {wrap: document.getElementById('f-email'), el: document.getElementById('email'),
-            ok: function(v){ return /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(v.trim()); }},
-    phone: {wrap: document.getElementById('f-phone'), el: document.getElementById('phone'),
-            ok: function(v){ return v.replace(/\D/g,'').length >= 7; }}
+  /* Dial code, national trunk prefix and the length of the national number for
+     the ten countries the selector offers. Enough to build a correct E.164
+     number without pulling a phone-number library into a page that is meant to
+     stay dependency-free. */
+  var COUNTRIES = {
+    US:{dial:'1',   trunk:'',  min:10, max:10, hint:'(415) 555-0132'},
+    CA:{dial:'1',   trunk:'',  min:10, max:10, hint:'(416) 555-0132'},
+    GB:{dial:'44',  trunk:'0', min:9,  max:10, hint:'07700 900123'},
+    AU:{dial:'61',  trunk:'0', min:9,  max:9,  hint:'0412 345 678'},
+    NZ:{dial:'64',  trunk:'0', min:8,  max:10, hint:'021 123 4567'},
+    IE:{dial:'353', trunk:'0', min:7,  max:9,  hint:'085 012 3456'},
+    DE:{dial:'49',  trunk:'0', min:6,  max:11, hint:'0151 23456789'},
+    FR:{dial:'33',  trunk:'0', min:9,  max:9,  hint:'06 12 34 56 78'},
+    NL:{dial:'31',  trunk:'0', min:9,  max:9,  hint:'06 12345678'},
+    IL:{dial:'972', trunk:'0', min:8,  max:9,  hint:'052-555-0132'}
   };
+
+  var form   = document.getElementById('signup');
+  var done   = document.getElementById('done');
+  var lede   = document.getElementById('lede');
+  var btn    = document.getElementById('submit');
+  var label  = document.getElementById('submitLabel');
+  var cont   = document.getElementById('continue');
+  var select = document.getElementById('dialcode');
+
+  function iso(){ return select.selectedOptions[0].dataset.iso; }
+
+  /* Turn what the user typed into E.164, or null if it cannot be one. Covers
+     the two ways this normally goes wrong: a national trunk prefix ("07700
+     900123" in the UK, "052-..." in Israel) and a country code the user typed
+     into the field themselves on top of the one they picked. */
+  function toE164(raw, code){
+    var c = COUNTRIES[code];
+    if (!c) return null;
+
+    var d = String(raw).replace(/\D/g,'');
+    if (!d) return null;
+
+    if (d.indexOf('00') === 0) d = d.slice(2);   // 00 international prefix
+
+    if (d.indexOf(c.dial) === 0){                // country code typed in the field
+      var rest = d.slice(c.dial.length);
+      var bare = (c.trunk && rest.indexOf(c.trunk) === 0) ? rest.slice(c.trunk.length) : rest;
+      if (bare.length >= c.min && bare.length <= c.max) d = rest;
+    }
+
+    if (c.trunk && d.indexOf(c.trunk) === 0) d = d.slice(c.trunk.length);
+
+    if (d.length < c.min || d.length > c.max) return null;
+    return '+' + c.dial + d;
+  }
+
+  /* Each field reports 'ok', 'empty' or 'invalid'; empty and invalid read
+     differently, the way they do on the reference screen. */
+  var fields = {
+    name: {
+      wrap: document.getElementById('f-name'),
+      el:   document.getElementById('fullname'),
+      err:  document.getElementById('e-name'),
+      state: function(v){ return v.trim().length >= 2 ? 'ok' : 'empty'; },
+      msg: {empty:'Please enter your full name.', invalid:'Please enter your full name.'}
+    },
+    email: {
+      wrap: document.getElementById('f-email'),
+      el:   document.getElementById('email'),
+      err:  document.getElementById('e-email'),
+      state: function(v){
+        if (!v.trim()) return 'empty';
+        return /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(v.trim()) ? 'ok' : 'invalid';
+      },
+      msg: {empty:'Please enter your email.', invalid:'That email does not look right.'}
+    },
+    phone: {
+      wrap: document.getElementById('f-phone'),
+      el:   document.getElementById('phone'),
+      err:  document.getElementById('e-phone'),
+      state: function(v){
+        if (!v.replace(/\D/g,'')) return 'empty';
+        return toE164(v, iso()) ? 'ok' : 'invalid';
+      },
+      msg: {empty:'Please enter your phone number.', invalid:'Check your number, or pick a different country.'}
+    }
+  };
+
+  function mark(f, state){
+    var bad = state !== 'ok';
+    f.wrap.classList.toggle('invalid', bad);
+    f.el.setAttribute('aria-invalid', bad ? 'true' : 'false');
+    if (bad) f.err.querySelector('.error-text').textContent = f.msg[state];
+  }
 
   Object.keys(fields).forEach(function(k){
     var f = fields[k];
     f.el.addEventListener('input', function(){
-      if (f.wrap.classList.contains('invalid') && f.ok(f.el.value)) f.wrap.classList.remove('invalid');
+      if (f.wrap.classList.contains('invalid') && f.state(f.el.value) === 'ok') mark(f, 'ok');
     });
     f.el.addEventListener('blur', function(){
-      if (f.el.value !== '' && !f.ok(f.el.value)) f.wrap.classList.add('invalid');
+      /* An untouched field is not an error yet — only submit flags empties. */
+      if (f.el.value !== '') mark(f, f.state(f.el.value));
     });
+  });
+
+  /* The same digits can be valid in one country and not in another, so changing
+     the selector re-checks the number and swaps the example shown. */
+  select.addEventListener('change', function(){
+    var c = COUNTRIES[iso()];
+    if (c) fields.phone.el.placeholder = c.hint;
+    if (fields.phone.wrap.classList.contains('invalid')){
+      mark(fields.phone, fields.phone.state(fields.phone.el.value));
+    }
   });
 
   form.addEventListener('submit', function(e){
@@ -299,9 +385,9 @@
 
     var first = null;
     Object.keys(fields).forEach(function(k){
-      var f = fields[k], good = f.ok(f.el.value);
-      f.wrap.classList.toggle('invalid', !good);
-      if (!good && !first) first = f.el;
+      var f = fields[k], state = f.state(f.el.value);
+      mark(f, state);
+      if (state !== 'ok' && !first) first = f.el;
     });
     if (first){ first.focus(); return; }
 
@@ -309,15 +395,13 @@
        PRODUCTION HOOK — hand-off to the calling partner.
        Delivery method still TBD (webhook / their API / batch file), so the
        payload is assembled here and the transport is the only thing left
-       to fill in. Store phone in E.164 either way.
+       to fill in. Phone is E.164 either way.
        ------------------------------------------------------------------ */
-    var dial   = document.getElementById('dialcode').value;
-    var digits = fields.phone.el.value.replace(/\D/g,'');
     var lead = {
       full_name  : fields.name.el.value.trim(),
       email      : fields.email.el.value.trim(),
-      phone_e164 : dial + digits,
-      country    : document.getElementById('dialcode').selectedOptions[0].dataset.iso,
+      phone_e164 : toE164(fields.phone.el.value, iso()),
+      country    : iso(),
       user_id    : null,                 // filled once the account is created
       source     : 'buildyourstore_signup',
       created_at : new Date().toISOString()
@@ -336,6 +420,9 @@
       cont.setAttribute('href', NEXT_SCREEN);
     }, 900);
   });
+
+  // show the example number for whichever country is preselected
+  (function(){ var c = COUNTRIES[iso()]; if (c) fields.phone.el.placeholder = c.hint; })();
 })();
 </script>
 </body>

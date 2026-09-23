@@ -106,8 +106,16 @@
     width:100%;
     --iti-border-color:var(--line-strong);
     --iti-hover-color:rgba(0,154,123,.07);
-    --iti-country-selector-bg:transparent;
     --iti-arrow-padding:8px;
+  }
+  /* When open, the dropdown IS this element, so its background cannot be made
+     transparent to blend the closed button into the field — doing that leaves
+     the country list see-through and unreadable over whatever is behind it.
+     Matching the input's own white gets the blended look anyway. */
+  .iti__country-selector{
+    background-color:var(--surface);
+    border-radius:var(--radius-ctl);
+    box-shadow:0 18px 40px -20px rgba(12,20,19,.45);
   }
   .iti input[type="tel"]{font-variant-numeric:tabular-nums}
   .iti__country-container,.iti__selected-country-primary{

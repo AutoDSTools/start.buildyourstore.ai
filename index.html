@@ -138,6 +138,17 @@
   .cta[aria-busy="true"]{background:var(--ink-faint);box-shadow:none;cursor:progress}
   .cta[aria-busy="true"] .arrow{display:none}
 
+  /* shown when the lead could not be saved — the user must be able to retry,
+     because a lead that fails silently is a user who never gets a call */
+  .formerror{
+    display:none;align-items:flex-start;gap:7px;margin:0;
+    padding:12px 14px;border-radius:var(--radius-ctl);
+    background:rgba(212,24,61,.08);border:1px solid rgba(212,24,61,.25);
+    font-size:13px;line-height:1.45;font-weight:500;color:var(--danger);
+  }
+  .formerror.show{display:flex}
+  .formerror svg{flex:none;margin-top:1px}
+
   .secure{
     display:flex;align-items:center;justify-content:center;gap:7px;
     margin:0;font-size:13px;font-weight:500;color:var(--ink-soft);
@@ -228,6 +239,11 @@
         <p class="error" id="e-phone"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 7.5v5M12 16.2v.1"/></svg> <span class="error-text">Please enter your phone number.</span></p>
       </div>
 
+      <p class="formerror" id="formError" role="alert">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 7.5v5M12 16.2v.1"/></svg>
+        <span id="formErrorText"></span>
+      </p>
+
       <button class="cta" type="submit" id="submit">
         <span id="submitLabel">Get my FREE store &amp; Course</span>
         <span class="arrow" aria-hidden="true">
@@ -267,6 +283,29 @@
   "use strict";
 
   var NEXT_SCREEN = "/call"; // the "Answer the call" screen
+
+  /* ------------------------------------------------------------------
+     LEAD STORAGE
+     Leads are written straight into our own Supabase table; the calling
+     partner reads that table on their side, so there is no endpoint of ours
+     in between. Fill these two in once DevOps have created the project.
+
+     The anon key is public by design and safe to ship ONLY while the table's
+     policy allows INSERT and nothing else. If it ever gains SELECT, anyone
+     visiting this page can read every lead.
+     ------------------------------------------------------------------ */
+  var SUPABASE_URL      = '';       // https://<project>.supabase.co
+  var SUPABASE_ANON_KEY = '';       // public anon key, INSERT-only by policy
+  var LEADS_TABLE       = 'leads';
+
+  var SAVE_TIMEOUT_MS = 8000;
+
+  /* Local review still works with no project configured. On the live site a
+     missing configuration is treated as a failure instead, so that a deploy
+     with empty settings cannot quietly swallow leads. */
+  var IS_PREVIEW = location.protocol === 'file:' ||
+                   location.hostname === 'localhost' ||
+                   location.hostname === '127.0.0.1';
 
   /* Dial code, national trunk prefix and the length of the national number for
      the ten countries the selector offers. Enough to build a correct E.164
@@ -318,6 +357,58 @@
 
     if (d.length < c.min || d.length > c.max) return null;
     return '+' + c.dial + d;
+  }
+
+  function uuid(){
+    if (window.crypto && crypto.randomUUID) return crypto.randomUUID();
+    return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c){
+      var r = (Math.random() * 16) | 0;
+      return (c === 'x' ? r : ((r & 0x3) | 0x8)).toString(16);
+    });
+  }
+
+  function saveLead(lead){
+    if (!SUPABASE_URL || !SUPABASE_ANON_KEY){
+      return Promise.reject(new Error('lead storage is not configured'));
+    }
+
+    var stop = new AbortController();
+    var timer = setTimeout(function(){ stop.abort(); }, SAVE_TIMEOUT_MS);
+
+    return fetch(SUPABASE_URL.replace(/\/$/, '') + '/rest/v1/' + LEADS_TABLE, {
+      method  : 'POST',
+      signal  : stop.signal,
+      headers : {
+        'Content-Type' : 'application/json',
+        'apikey'       : SUPABASE_ANON_KEY,
+        'Authorization': 'Bearer ' + SUPABASE_ANON_KEY,
+        'Prefer'       : 'return=minimal'
+      },
+      body: JSON.stringify(lead)
+    }).then(function(res){
+      if (!res.ok) throw new Error('lead storage returned ' + res.status);
+      return res;
+    }).finally(function(){ clearTimeout(timer); });
+  }
+
+  /* One automatic retry: most failures here are a dropped connection on a
+     phone, and asking the user to press the button again loses some of them. */
+  function saveLeadWithRetry(lead){
+    return saveLead(lead).catch(function(err){
+      if (err && err.name === 'AbortError') throw err;
+      return new Promise(function(go){ setTimeout(go, 1200); }).then(function(){
+        return saveLead(lead);
+      });
+    });
+  }
+
+  function showFormError(message){
+    document.getElementById('formErrorText').textContent = message;
+    document.getElementById('formError').classList.add('show');
+  }
+
+  function clearFormError(){
+    document.getElementById('formError').classList.remove('show');
   }
 
   /* Each field reports 'ok', 'empty' or 'invalid'; empty and invalid read
@@ -382,6 +473,7 @@
 
   form.addEventListener('submit', function(e){
     e.preventDefault();
+    clearFormError();
 
     var first = null;
     Object.keys(fields).forEach(function(k){
@@ -391,34 +483,47 @@
     });
     if (first){ first.focus(); return; }
 
-    /* ------------------------------------------------------------------
-       PRODUCTION HOOK — hand-off to the calling partner.
-       Delivery method still TBD (webhook / their API / batch file), so the
-       payload is assembled here and the transport is the only thing left
-       to fill in. Phone is E.164 either way.
-       ------------------------------------------------------------------ */
     var lead = {
+      id         : uuid(),               // the partner de-duplicates on this
       full_name  : fields.name.el.value.trim(),
       email      : fields.email.el.value.trim(),
       phone_e164 : toE164(fields.phone.el.value, iso()),
       country    : iso(),
-      user_id    : null,                 // filled once the account is created
       source     : 'buildyourstore_signup',
       created_at : new Date().toISOString()
     };
-    // TODO: send `lead` the way the partner asks for it.
-    if (window.console) console.log('lead', lead);
 
     btn.setAttribute('aria-busy','true');
-    label.textContent = 'Building your store…';
-    document.getElementById('donephone').textContent = lead.phone_e164;
+    label.textContent = 'Building your store\u2026';
 
-    setTimeout(function(){
+    function advance(){
+      document.getElementById('donephone').textContent = lead.phone_e164;
       form.classList.add('hide');
       lede.classList.add('hide');
       done.classList.add('show');
       cont.setAttribute('href', NEXT_SCREEN);
-    }, 900);
+    }
+
+    function failed(err){
+      if (window.console) console.error('lead not saved', err);
+      btn.removeAttribute('aria-busy');
+      label.textContent = 'Get my FREE store & Course';
+      /* Deliberately not sent on to the call screen: that screen promises a
+         call within seconds, and nobody is going to place it. */
+      showFormError("We couldn't save your details. Please check your connection and try again.");
+    }
+
+    if (!SUPABASE_URL || !SUPABASE_ANON_KEY){
+      if (IS_PREVIEW){
+        if (window.console) console.warn('lead storage not configured — preview only', lead);
+        setTimeout(advance, 900);
+      } else {
+        failed(new Error('lead storage is not configured'));
+      }
+      return;
+    }
+
+    saveLeadWithRetry(lead).then(advance, failed);
   });
 
   // show the example number for whichever country is preselected

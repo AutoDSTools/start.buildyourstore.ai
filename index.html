@@ -118,6 +118,31 @@
   .iti__country-list{font-size:15px}
   .iti--fullscreen-popup .iti__country-list{font-size:16px}
 
+  /* email domain suggestions */
+  .suggest-wrap{position:relative}
+  .suggest{
+    display:none;position:absolute;left:0;right:0;top:100%;z-index:20;
+    margin-top:6px;padding:6px;
+    background:var(--surface);
+    border:1.5px solid var(--line-strong);border-radius:var(--radius-ctl);
+    box-shadow:0 18px 40px -20px rgba(12,20,19,.45);
+  }
+  .suggest.show{display:block}
+  .suggest button{
+    display:block;width:100%;text-align:left;
+    font-family:inherit;font-size:15px;color:var(--ink);
+    padding:10px 12px;border:0;border-radius:8px;background:transparent;cursor:pointer;
+  }
+  .suggest button:hover,.suggest button.active{background:var(--teal-light);color:var(--teal-80)}
+
+  /* countdown under the button */
+  .timer{
+    display:flex;align-items:center;justify-content:center;gap:7px;
+    margin:0;font-size:13px;font-weight:500;color:var(--ink-soft);
+  }
+  .timer svg{color:var(--teal);flex:none}
+  .timer b{font-weight:600;color:var(--ink);font-variant-numeric:tabular-nums}
+
   .error{
     display:none;font-size:12.5px;font-weight:500;color:var(--danger);
     align-items:center;gap:6px;margin:0;
@@ -210,7 +235,10 @@
 
       <div class="field" id="f-email">
         <label for="email">Email</label>
-        <input type="email" id="email" name="email" placeholder="Enter your email" autocomplete="email" inputmode="email" aria-describedby="e-email" aria-invalid="false" required>
+        <div class="suggest-wrap">
+          <input type="email" id="email" name="email" placeholder="Enter your email" autocomplete="email" inputmode="email" aria-describedby="e-email" aria-invalid="false" role="combobox" aria-autocomplete="list" aria-expanded="false" aria-controls="emailSuggest" required>
+          <div class="suggest" id="emailSuggest" role="listbox" aria-label="Email suggestions"></div>
+        </div>
         <p class="error" id="e-email"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 7.5v5M12 16.2v.1"/></svg> <span class="error-text">Please enter a valid email address.</span></p>
       </div>
 
@@ -231,6 +259,11 @@
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12h14M12 6l6 6-6 6"/></svg>
         </span>
       </button>
+
+      <p class="timer">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 7.5V12l3 2"/></svg>
+        Free offer expires in <b id="timerValue">2:00</b>
+      </p>
 
       <p class="secure">
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="4" y="11" width="16" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg>
@@ -419,6 +452,112 @@
 
   /* The same digits can be valid in one country and not in another, so changing
      the selector re-checks the number and swaps the example shown. */
+  /* Domain suggestions while the email is being typed. A fixed local list —
+     nothing is looked up and nothing is sent anywhere. */
+  var DOMAINS = [
+    'gmail.com','icloud.com','hotmail.com','outlook.com','yahoo.com',
+    'aol.com','live.com','msn.com','me.com','mac.com',
+    'protonmail.com','proton.me','mail.com','zoho.com','ymail.com',
+    'gmx.com','gmx.de','gmx.net','web.de','yandex.ru',
+    'hotmail.co.uk','yahoo.co.uk','sky.com','btinternet.com','virginmedia.com',
+    'outlook.fr','orange.fr','free.fr','wanadoo.fr','hotmail.fr','yahoo.fr',
+    'libero.it','hotmail.it','hotmail.es','yahoo.de',
+    'walla.co.il','walla.com','bezeqint.net',
+    'bigpond.com','optusnet.com.au','xtra.co.nz',
+    'shaw.ca','rogers.com','telus.net','sympatico.ca',
+    'naver.com','qq.com','163.com','rediffmail.com','yahoo.co.in'
+  ];
+
+  var suggestBox  = document.getElementById('emailSuggest');
+  var suggestions = [];
+  var active      = -1;
+
+  function closeSuggest(){
+    suggestBox.classList.remove('show');
+    suggestBox.innerHTML = '';
+    fields.email.el.setAttribute('aria-expanded','false');
+    fields.email.el.removeAttribute('aria-activedescendant');
+    suggestions = []; active = -1;
+  }
+
+  function highlight(i){
+    var buttons = suggestBox.querySelectorAll('button');
+    for (var n = 0; n < buttons.length; n++){
+      var on = (n === i);
+      buttons[n].classList.toggle('active', on);
+      buttons[n].setAttribute('aria-selected', on ? 'true' : 'false');
+    }
+    active = i;
+    if (i > -1) fields.email.el.setAttribute('aria-activedescendant','email-suggest-' + i);
+    else fields.email.el.removeAttribute('aria-activedescendant');
+  }
+
+  function choose(i){
+    if (i < 0 || i >= suggestions.length) return;
+    fields.email.el.value = suggestions[i];
+    closeSuggest();
+    mark(fields.email, fields.email.state(fields.email.el.value));
+    fields.email.el.focus();
+  }
+
+  function openSuggest(){
+    var value = fields.email.el.value;
+    var at    = value.indexOf('@');
+    if (at < 1) return closeSuggest();
+
+    var local   = value.slice(0, at);
+    var typed   = value.slice(at + 1).toLowerCase();
+    var matches = DOMAINS.filter(function(d){ return d.indexOf(typed) === 0; }).slice(0, 5);
+
+    /* nothing to offer, or the only match is already typed out in full */
+    if (!matches.length || (matches.length === 1 && matches[0] === typed)) return closeSuggest();
+
+    suggestions = matches.map(function(d){ return local + '@' + d; });
+    suggestBox.innerHTML = '';
+    suggestions.forEach(function(full, i){
+      var b = document.createElement('button');
+      b.type = 'button';
+      b.id   = 'email-suggest-' + i;
+      b.setAttribute('role','option');
+      b.setAttribute('aria-selected','false');
+      b.textContent = full;
+      /* mousedown, so the pick lands before the field loses focus */
+      b.addEventListener('mousedown', function(e){ e.preventDefault(); choose(i); });
+      suggestBox.appendChild(b);
+    });
+    highlight(-1);
+    suggestBox.classList.add('show');
+    fields.email.el.setAttribute('aria-expanded','true');
+  }
+
+  fields.email.el.addEventListener('input', openSuggest);
+  fields.email.el.addEventListener('focus', openSuggest);
+  fields.email.el.addEventListener('blur',  function(){ setTimeout(closeSuggest, 120); });
+  fields.email.el.addEventListener('keydown', function(e){
+    if (!suggestBox.classList.contains('show')) return;
+    if (e.key === 'ArrowDown'){ e.preventDefault(); highlight(Math.min(active + 1, suggestions.length - 1)); }
+    else if (e.key === 'ArrowUp'){ e.preventDefault(); highlight(Math.max(active - 1, -1)); }
+    else if (e.key === 'Enter' && active > -1){ e.preventDefault(); choose(active); }
+    else if (e.key === 'Escape'){ closeSuggest(); }
+  });
+
+  /* Two minutes from arrival, matching the headline, and stopping at zero.
+     Nothing about the form changes when it gets there — it is an urgency
+     device, exactly as it is on the reference screen. Driven off a timestamp
+     rather than a tick count so a backgrounded tab does not drift. */
+  (function(){
+    var out = document.getElementById('timerValue');
+    if (!out) return;
+    var ends = Date.now() + 120000;
+
+    (function tick(){
+      var left = Math.max(0, Math.round((ends - Date.now()) / 1000));
+      var mins = Math.floor(left / 60), secs = left % 60;
+      out.textContent = mins + ':' + (secs < 10 ? '0' : '') + secs;
+      if (left > 0) setTimeout(tick, 250);
+    })();
+  })();
+
   /* The same digits can be valid in one country and not in another. */
   phoneInput.addEventListener('countrychange', function(){
     if (fields.phone.wrap.classList.contains('invalid')){

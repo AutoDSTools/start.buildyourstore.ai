@@ -160,20 +160,6 @@
   }
   .legal a{color:var(--ink-soft)}
 
-  /* ---------- success state ---------- */
-  .done{display:none;text-align:center}
-  .done.show{display:block}
-  form.hide,.lede.hide{display:none}
-  .done-mark{
-    width:60px;height:60px;border-radius:50%;margin:26px auto 16px;
-    background:var(--teal-light);color:var(--teal);
-    display:grid;place-items:center;
-  }
-  .done h2{margin:0;font-size:22px;font-weight:700;letter-spacing:-.02em}
-  .done p{margin:10px auto 0;max-width:36ch;font-size:14px;line-height:1.55;color:var(--ink-soft)}
-  .done b{color:var(--ink);font-variant-numeric:tabular-nums;white-space:nowrap}
-  .done .cta{max-width:320px;margin:20px auto 0;text-decoration:none}
-
   @media (max-width:520px){
     .brand{padding-top:20px}
     .phone-row select{min-width:104px}
@@ -262,19 +248,6 @@
       </p>
     </form>
 
-    <div class="done" id="done" role="status">
-      <div class="done-mark">
-        <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m4 12.5 5 5L20 6.5"/></svg>
-      </div>
-      <h2>Your store is being built.</h2>
-      <p>We're calling <b id="donephone">+1 (415) 555-0132</b> in the next few seconds. Keep your phone nearby.</p>
-      <a class="cta" id="continue" href="#">
-        <span>Continue</span>
-        <span class="arrow" aria-hidden="true">
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12h14M12 6l6 6-6 6"/></svg>
-        </span>
-      </a>
-    </div>
   </div>
 </main>
 
@@ -325,11 +298,8 @@
   };
 
   var form   = document.getElementById('signup');
-  var done   = document.getElementById('done');
-  var lede   = document.getElementById('lede');
   var btn    = document.getElementById('submit');
   var label  = document.getElementById('submitLabel');
-  var cont   = document.getElementById('continue');
   var select = document.getElementById('dialcode');
 
   function iso(){ return select.selectedOptions[0].dataset.iso; }
@@ -497,11 +467,7 @@
     label.textContent = 'Building your store\u2026';
 
     function advance(){
-      document.getElementById('donephone').textContent = lead.phone_e164;
-      form.classList.add('hide');
-      lede.classList.add('hide');
-      done.classList.add('show');
-      cont.setAttribute('href', NEXT_SCREEN);
+      location.href = NEXT_SCREEN;
     }
 
     function failed(err){

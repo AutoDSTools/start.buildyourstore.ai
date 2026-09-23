@@ -329,6 +329,43 @@
     return '+' + c.dial + d;
   }
 
+  /* Best guess at the visitor's country, so the dial code is already right
+     instead of making them hunt for it. Read from the device's own time zone
+     and language: no geo-IP service, no extra request, and nothing about the
+     visitor leaves the page. It is only a default — the selector still decides. */
+  var ZONES = {
+    'America/New_York':'US','America/Detroit':'US','America/Chicago':'US','America/Denver':'US',
+    'America/Phoenix':'US','America/Los_Angeles':'US','America/Anchorage':'US','Pacific/Honolulu':'US',
+    'America/Toronto':'CA','America/Vancouver':'CA','America/Edmonton':'CA','America/Winnipeg':'CA',
+    'America/Halifax':'CA','America/St_Johns':'CA','America/Regina':'CA',
+    'Europe/London':'GB','Europe/Dublin':'IE',
+    'Europe/Berlin':'DE','Europe/Busingen':'DE',
+    'Europe/Paris':'FR','Europe/Amsterdam':'NL',
+    'Asia/Jerusalem':'IL','Asia/Tel_Aviv':'IL',
+    'Australia/Sydney':'AU','Australia/Melbourne':'AU','Australia/Brisbane':'AU','Australia/Perth':'AU',
+    'Australia/Adelaide':'AU','Australia/Hobart':'AU','Australia/Darwin':'AU',
+    'Pacific/Auckland':'NZ'
+  };
+
+  function guessCountry(){
+    var zone = '';
+    try { zone = Intl.DateTimeFormat().resolvedOptions().timeZone || ''; } catch (e) { zone = ''; }
+    if (ZONES[zone]) return ZONES[zone];
+
+    /* e.g. "en-GB" -> GB. Only used when the time zone is one we don't list. */
+    var region = (navigator.language || '').toUpperCase().split('-')[1];
+    if (region && COUNTRIES[region]) return region;
+
+    return null;
+  }
+
+  function selectCountry(code){
+    for (var i = 0; i < select.options.length; i++){
+      if (select.options[i].dataset.iso === code){ select.selectedIndex = i; return true; }
+    }
+    return false;
+  }
+
   function uuid(){
     if (window.crypto && crypto.randomUUID) return crypto.randomUUID();
     return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c){
@@ -492,8 +529,13 @@
     saveLeadWithRetry(lead).then(advance, failed);
   });
 
-  // show the example number for whichever country is preselected
-  (function(){ var c = COUNTRIES[iso()]; if (c) fields.phone.el.placeholder = c.hint; })();
+  // open on the visitor's own country where we can tell, with its example number
+  (function(){
+    var guess = guessCountry();
+    if (guess) selectCountry(guess);
+    var c = COUNTRIES[iso()];
+    if (c) fields.phone.el.placeholder = c.hint;
+  })();
 })();
 </script>
 </body>

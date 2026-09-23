@@ -7,6 +7,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Poppins:ital,wght@0,400;0,500;0,600;0,700&display=swap">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/intl-tel-input@29.5.2/dist/css/intlTelInput.min.css">
 <style>
   /* ============================================================
      BuildYourStore — signup / user details step
@@ -98,16 +99,24 @@
     outline:none;border-color:var(--teal);
     box-shadow:0 0 0 3px rgba(0,154,123,.16);
   }
-  .phone-row{display:flex;gap:10px}
-  .phone-row select{
-    width:auto;flex:none;min-width:116px;
-    font-weight:500;font-variant-numeric:tabular-nums;
-    appearance:none;
-    background-image:url("data:image/svg+xml;charset=utf-8,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' fill='none' stroke='%234f5d59' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M1 1.5 6 6.5l5-5'/%3E%3C/svg%3E");
-    background-repeat:no-repeat;background-position:right 13px center;
-    padding-right:34px;
+  /* intl-tel-input, restyled to match the rest of the form. It carries the full
+     country list and per-country validation, including the cases a hand-written
+     table gets wrong — Italy, for one, keeps its leading zero. */
+  .iti{
+    width:100%;
+    --iti-border-color:var(--line-strong);
+    --iti-hover-color:rgba(0,154,123,.07);
+    --iti-country-selector-bg:transparent;
+    --iti-arrow-padding:8px;
   }
-  .phone-row input{flex:1;min-width:0;font-variant-numeric:tabular-nums}
+  .iti input[type="tel"]{font-variant-numeric:tabular-nums}
+  .iti__country-container,.iti__selected-country-primary{
+    border-radius:var(--radius-ctl) 0 0 var(--radius-ctl);
+  }
+  .iti__selected-dial-code{font-weight:500;color:var(--ink)}
+  .iti__search-input{font-family:inherit;font-size:15px}
+  .iti__country-list{font-size:15px}
+  .iti--fullscreen-popup .iti__country-list{font-size:16px}
 
   .error{
     display:none;font-size:12.5px;font-weight:500;color:var(--danger);
@@ -188,40 +197,26 @@
     <h1>You're two minutes from your <em>free store</em>.</h1>
 
     <p class="lede" id="lede">
-      The store, 10 winning products, full course and a call with our AI Agent.
+      The store, 10 winning products, the full course and a call with an AI Agent.
       No card, nothing to pay.
     </p>
 
     <form id="signup" novalidate>
       <div class="field" id="f-name">
-        <label for="fullname">Full Name</label>
-        <input type="text" id="fullname" name="fullname" placeholder="Enter your full name" autocomplete="name" aria-describedby="e-name" aria-invalid="false" required>
-        <p class="error" id="e-name"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 7.5v5M12 16.2v.1"/></svg> <span class="error-text">Please enter your full name.</span></p>
+        <label for="fullname">Name</label>
+        <input type="text" id="fullname" name="fullname" placeholder="Enter your name" autocomplete="name" aria-describedby="e-name" aria-invalid="false" required>
+        <p class="error" id="e-name"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 7.5v5M12 16.2v.1"/></svg> <span class="error-text">Please enter your name.</span></p>
       </div>
 
       <div class="field" id="f-email">
         <label for="email">Email</label>
         <input type="email" id="email" name="email" placeholder="Enter your email" autocomplete="email" inputmode="email" aria-describedby="e-email" aria-invalid="false" required>
-        <p class="error" id="e-email"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 7.5v5M12 16.2v.1"/></svg> <span class="error-text">Please enter your email.</span></p>
+        <p class="error" id="e-email"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 7.5v5M12 16.2v.1"/></svg> <span class="error-text">Please enter a valid email address.</span></p>
       </div>
 
       <div class="field" id="f-phone">
         <label for="phone">Phone Number</label>
-        <div class="phone-row">
-          <select id="dialcode" name="dialcode" aria-label="Country dialling code">
-            <option value="+1" data-iso="US" selected>US +1</option>
-            <option value="+1" data-iso="CA">CA +1</option>
-            <option value="+44" data-iso="GB">UK +44</option>
-            <option value="+61" data-iso="AU">AU +61</option>
-            <option value="+64" data-iso="NZ">NZ +64</option>
-            <option value="+353" data-iso="IE">IE +353</option>
-            <option value="+49" data-iso="DE">DE +49</option>
-            <option value="+33" data-iso="FR">FR +33</option>
-            <option value="+31" data-iso="NL">NL +31</option>
-            <option value="+972" data-iso="IL">IL +972</option>
-          </select>
-          <input type="tel" id="phone" name="phone" placeholder="(415) 555-0132" autocomplete="tel-national" inputmode="tel" aria-describedby="e-phone" aria-invalid="false" required>
-        </div>
+        <input type="tel" id="phone" name="phone" autocomplete="tel" aria-describedby="e-phone" aria-invalid="false" required>
         <p class="error" id="e-phone"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 7.5v5M12 16.2v.1"/></svg> <span class="error-text">Please enter your phone number.</span></p>
       </div>
 
@@ -231,7 +226,7 @@
       </p>
 
       <button class="cta" type="submit" id="submit">
-        <span id="submitLabel">Get my FREE store &amp; Course</span>
+        <span id="submitLabel">Build my FREE Store</span>
         <span class="arrow" aria-hidden="true">
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12h14M12 6l6 6-6 6"/></svg>
         </span>
@@ -251,6 +246,7 @@
   </div>
 </main>
 
+<script src="https://cdn.jsdelivr.net/npm/intl-tel-input@29.5.2/dist/js/intlTelInputWithUtils.min.js"></script>
 <script>
 (function(){
   "use strict";
@@ -280,54 +276,11 @@
                    location.hostname === 'localhost' ||
                    location.hostname === '127.0.0.1';
 
-  /* Dial code, national trunk prefix and the length of the national number for
-     the ten countries the selector offers. Enough to build a correct E.164
-     number without pulling a phone-number library into a page that is meant to
-     stay dependency-free. */
-  var COUNTRIES = {
-    US:{dial:'1',   trunk:'',  min:10, max:10, hint:'(415) 555-0132'},
-    CA:{dial:'1',   trunk:'',  min:10, max:10, hint:'(416) 555-0132'},
-    GB:{dial:'44',  trunk:'0', min:9,  max:10, hint:'07700 900123'},
-    AU:{dial:'61',  trunk:'0', min:9,  max:9,  hint:'0412 345 678'},
-    NZ:{dial:'64',  trunk:'0', min:8,  max:10, hint:'021 123 4567'},
-    IE:{dial:'353', trunk:'0', min:7,  max:9,  hint:'085 012 3456'},
-    DE:{dial:'49',  trunk:'0', min:6,  max:11, hint:'0151 23456789'},
-    FR:{dial:'33',  trunk:'0', min:9,  max:9,  hint:'06 12 34 56 78'},
-    NL:{dial:'31',  trunk:'0', min:9,  max:9,  hint:'06 12345678'},
-    IL:{dial:'972', trunk:'0', min:8,  max:9,  hint:'052-555-0132'}
-  };
-
   var form   = document.getElementById('signup');
   var btn    = document.getElementById('submit');
   var label  = document.getElementById('submitLabel');
-  var select = document.getElementById('dialcode');
-
-  function iso(){ return select.selectedOptions[0].dataset.iso; }
-
-  /* Turn what the user typed into E.164, or null if it cannot be one. Covers
-     the two ways this normally goes wrong: a national trunk prefix ("07700
-     900123" in the UK, "052-..." in Israel) and a country code the user typed
-     into the field themselves on top of the one they picked. */
-  function toE164(raw, code){
-    var c = COUNTRIES[code];
-    if (!c) return null;
-
-    var d = String(raw).replace(/\D/g,'');
-    if (!d) return null;
-
-    if (d.indexOf('00') === 0) d = d.slice(2);   // 00 international prefix
-
-    if (d.indexOf(c.dial) === 0){                // country code typed in the field
-      var rest = d.slice(c.dial.length);
-      var bare = (c.trunk && rest.indexOf(c.trunk) === 0) ? rest.slice(c.trunk.length) : rest;
-      if (bare.length >= c.min && bare.length <= c.max) d = rest;
-    }
-
-    if (c.trunk && d.indexOf(c.trunk) === 0) d = d.slice(c.trunk.length);
-
-    if (d.length < c.min || d.length > c.max) return null;
-    return '+' + c.dial + d;
-  }
+  var phoneInput = document.getElementById('phone');
+  var iti = null;
 
   /* Best guess at the visitor's country, so the dial code is already right
      instead of making them hunt for it. Read from the device's own time zone
@@ -354,16 +307,9 @@
 
     /* e.g. "en-GB" -> GB. Only used when the time zone is one we don't list. */
     var region = (navigator.language || '').toUpperCase().split('-')[1];
-    if (region && COUNTRIES[region]) return region;
+    if (/^[A-Z]{2}$/.test(region || '')) return region;
 
     return null;
-  }
-
-  function selectCountry(code){
-    for (var i = 0; i < select.options.length; i++){
-      if (select.options[i].dataset.iso === code){ select.selectedIndex = i; return true; }
-    }
-    return false;
   }
 
   function uuid(){
@@ -426,7 +372,7 @@
       el:   document.getElementById('fullname'),
       err:  document.getElementById('e-name'),
       state: function(v){ return v.trim().length >= 2 ? 'ok' : 'empty'; },
-      msg: {empty:'Please enter your full name.', invalid:'Please enter your full name.'}
+      msg: {empty:'Please enter your name.', invalid:'Please enter your name.'}
     },
     email: {
       wrap: document.getElementById('f-email'),
@@ -436,7 +382,7 @@
         if (!v.trim()) return 'empty';
         return /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(v.trim()) ? 'ok' : 'invalid';
       },
-      msg: {empty:'Please enter your email.', invalid:'That email does not look right.'}
+      msg: {empty:'Please enter a valid email address.', invalid:'Please enter a valid email address.'}
     },
     phone: {
       wrap: document.getElementById('f-phone'),
@@ -444,9 +390,12 @@
       err:  document.getElementById('e-phone'),
       state: function(v){
         if (!v.replace(/\D/g,'')) return 'empty';
-        return toE164(v, iso()) ? 'ok' : 'invalid';
+        if (iti) return iti.isValidNumber() ? 'ok' : 'invalid';
+        /* Library unavailable: accept anything plainly international rather than
+           turning a CDN outage into a form nobody can submit. */
+        return /^\+[1-9]\d{7,15}$/.test(v.replace(/[^\d+]/g,'')) ? 'ok' : 'invalid';
       },
-      msg: {empty:'Please enter your phone number.', invalid:'Check your number, or pick a different country.'}
+      msg: {empty:'Please enter your phone number.', invalid:'That number does not look right. Check the country code.'}
     }
   };
 
@@ -470,9 +419,8 @@
 
   /* The same digits can be valid in one country and not in another, so changing
      the selector re-checks the number and swaps the example shown. */
-  select.addEventListener('change', function(){
-    var c = COUNTRIES[iso()];
-    if (c) fields.phone.el.placeholder = c.hint;
+  /* The same digits can be valid in one country and not in another. */
+  phoneInput.addEventListener('countrychange', function(){
     if (fields.phone.wrap.classList.contains('invalid')){
       mark(fields.phone, fields.phone.state(fields.phone.el.value));
     }
@@ -494,8 +442,8 @@
       id         : uuid(),               // the partner de-duplicates on this
       full_name  : fields.name.el.value.trim(),
       email      : fields.email.el.value.trim(),
-      phone_e164 : toE164(fields.phone.el.value, iso()),
-      country    : iso(),
+      phone_e164 : phoneNumber(),
+      country    : phoneCountry(),
       source     : 'buildyourstore_signup',
       created_at : new Date().toISOString()
     };
@@ -510,7 +458,7 @@
     function failed(err){
       if (window.console) console.error('lead not saved', err);
       btn.removeAttribute('aria-busy');
-      label.textContent = 'Get my FREE store & Course';
+      label.textContent = 'Build my FREE Store';
       /* Deliberately not sent on to the call screen: that screen promises a
          call within seconds, and nobody is going to place it. */
       showFormError("We couldn't save your details. Please check your connection and try again.");
@@ -529,13 +477,28 @@
     saveLeadWithRetry(lead).then(advance, failed);
   });
 
-  // open on the visitor's own country where we can tell, with its example number
-  (function(){
-    var guess = guessCountry();
-    if (guess) selectCountry(guess);
-    var c = COUNTRIES[iso()];
-    if (c) fields.phone.el.placeholder = c.hint;
-  })();
+  function phoneNumber(){
+    if (iti) return iti.getNumber();                       // already E.164
+    return fields.phone.el.value.replace(/[^\d+]/g,'');
+  }
+
+  function phoneCountry(){
+    var picked = iti && iti.getSelectedCountry();
+    return picked && picked.iso2 ? picked.iso2.toUpperCase() : '';
+  }
+
+  // full country list, opened on the visitor's own country where we can tell
+  if (window.intlTelInput){
+    iti = window.intlTelInput(phoneInput, {
+      initialCountry   : (guessCountry() || 'US').toLowerCase(),
+      separateDialCode : true,
+      countrySearch    : true,
+      formatAsYouType  : true
+    });
+  } else if (window.console){
+    console.warn('intl-tel-input did not load — phone falls back to free text');
+    phoneInput.placeholder = '+1 415 555 0132';
+  }
 })();
 </script>
 </body>

@@ -38,6 +38,10 @@
   }
 
   *{box-sizing:border-box}
+  /* Any display rule of ours outranks the browser's own [hidden] styling, and
+     several below do. Without this, hiding a screen or a button silently does
+     nothing at all. */
+  [hidden]{display:none!important}
   html,body{height:100%}
 
   body{
@@ -177,19 +181,6 @@
   .cta:hover{background:var(--pink-dark)}
   .cta:active{transform:translateY(1px)}
   .cta:focus-visible{outline:3px solid var(--teal);outline-offset:3px}
-  .cta[aria-busy="true"]{background:var(--ink-faint);box-shadow:none;cursor:progress}
-  .cta[aria-busy="true"] .arrow{display:none}
-
-  /* shown when the lead could not be saved — the user must be able to retry,
-     because a lead that fails silently is a user who never gets a call */
-  .formerror{
-    display:none;align-items:flex-start;gap:7px;margin:0;
-    padding:12px 14px;border-radius:var(--radius-ctl);
-    background:rgba(212,24,61,.08);border:1px solid rgba(212,24,61,.25);
-    font-size:13px;line-height:1.45;font-weight:500;color:var(--danger);
-  }
-  .formerror.show{display:flex}
-  .formerror svg{flex:none;margin-top:1px}
 
   .secure{
     display:flex;align-items:center;justify-content:center;gap:7px;
@@ -202,8 +193,120 @@
   }
   .legal a{color:var(--ink-soft)}
 
+  /* ============================================================
+     The "Answer the call" screen, living in this same document.
+
+     It is here rather than behind a navigation for one reason: a browser only
+     permits sound without a click of its own while the user's gesture is still
+     live, and a gesture does not survive loading a new document. Swapping the
+     screen in place keeps the submit click alive, so the video can open with
+     sound the way the reference screen's does.
+
+     call.html still serves /call on a direct load — a refresh, a link from an
+     email — where there is no gesture and playback has to be asked for. These
+     styles are scoped so the two screens' .cta rules cannot collide; if you
+     change the player here, change it there too.
+     ============================================================ */
+  .screen-call .col{max-width:460px}
+  .screen-call h1{font-size:clamp(28px,6.6vw,36px);line-height:1.1}
+  .screen-call h1 .ring{
+    display:inline-block;vertical-align:-2px;margin-right:9px;
+    color:var(--teal);animation:ring 1.6s ease-in-out infinite;transform-origin:50% 70%;
+  }
+  @keyframes ring{
+    0%,62%,100%{transform:rotate(0)}
+    68%{transform:rotate(-14deg)}
+    74%{transform:rotate(12deg)}
+    80%{transform:rotate(-8deg)}
+    86%{transform:rotate(6deg)}
+  }
+
+  .player{
+    position:relative;margin-top:22px;
+    aspect-ratio:16/9;width:100%;
+    border-radius:12px;overflow:hidden;
+    background:#0e1a24;cursor:pointer;display:block;color:#fff;
+  }
+  .player-video{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;display:block}
+  .player-art{
+    position:absolute;inset:0;
+    background:
+      radial-gradient(120% 90% at 22% 18%, rgba(92,224,153,.34), transparent 58%),
+      radial-gradient(100% 80% at 82% 78%, rgba(0,154,123,.42), transparent 60%),
+      linear-gradient(160deg,#122430,#0b151d);
+    transition:opacity .25s ease;
+  }
+  .player.started .player-art{opacity:0}
+  .playbtn{
+    position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);
+    width:64px;height:64px;border-radius:50%;border:0;padding:0;
+    background:rgba(255,255,255,.18);color:#fff;backdrop-filter:blur(2px);
+    display:grid;place-items:center;cursor:pointer;
+    transition:opacity .18s ease,background .18s ease;
+  }
+  .playbtn:hover{background:rgba(255,255,255,.28)}
+  .playbtn:focus-visible{outline:3px solid var(--teal);outline-offset:3px}
+  .player.playing .playbtn{opacity:0;pointer-events:none}
+  /* only shown when the browser refused sound after all */
+  .unmute{
+    position:absolute;left:50%;bottom:16px;transform:translateX(-50%);
+    display:flex;align-items:center;gap:7px;
+    padding:9px 16px;border:0;border-radius:99px;
+    font-family:inherit;font-size:13px;font-weight:600;
+    background:rgba(255,255,255,.92);color:var(--ink);cursor:pointer;
+    box-shadow:0 8px 20px -8px rgba(0,0,0,.6);
+  }
+  .track{position:absolute;left:0;right:0;bottom:0;height:7px;background:rgba(255,255,255,.18)}
+  .track i{
+    display:block;height:100%;width:0;
+    background:linear-gradient(90deg,var(--teal),var(--green));
+    transition:width .25s linear;
+  }
+
+  .screen-call .cta{
+    margin-top:14px;width:100%;position:static;
+    display:flex;align-items:center;justify-content:center;gap:10px;
+    padding:17px 24px;border:0;border-radius:var(--radius-ctl);
+    font-family:inherit;font-size:17px;font-weight:600;letter-spacing:-.01em;
+    background:rgba(12,20,19,.07);color:var(--ink-faint);
+    cursor:not-allowed;box-shadow:none;
+    transition:background .2s ease,color .2s ease,transform .12s ease,box-shadow .2s ease;
+  }
+  .screen-call .cta .lock{
+    display:inline-flex;align-items:center;gap:5px;
+    padding:3px 9px;border-radius:99px;background:rgba(12,20,19,.09);
+    font-size:13px;font-variant-numeric:tabular-nums;
+  }
+  .screen-call .cta[data-state="unlocked"]{
+    background:var(--pink);color:#fff;cursor:pointer;
+    box-shadow:0 12px 26px -12px rgba(255,0,97,.9);
+  }
+  .screen-call .cta[data-state="unlocked"]:hover{background:var(--pink-dark)}
+  .screen-call .cta[data-state="unlocked"]:active{transform:translateY(1px)}
+  .screen-call .cta[data-state="unlocked"] .lock{display:none}
+
+  .points{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin-top:34px}
+  .point{display:flex;flex-direction:column;align-items:center;gap:8px}
+  .point svg{color:var(--teal);flex:none}
+  .point p{margin:0;font-size:12.5px;font-weight:500;line-height:1.4;color:var(--ink-soft);text-wrap:balance}
+
+  /* the save failed after the user was already moved on */
+  .callerror{
+    display:flex;align-items:flex-start;gap:8px;
+    margin:16px 0 0;padding:12px 14px;border-radius:var(--radius-ctl);
+    background:rgba(212,24,61,.08);border:1px solid rgba(212,24,61,.25);
+    font-size:13px;line-height:1.45;font-weight:500;color:var(--danger);text-align:left;
+  }
+  .callerror svg{flex:none;margin-top:1px}
+  .callerror button{
+    font-family:inherit;font-size:13px;font-weight:600;color:var(--danger);
+    background:none;border:0;padding:0;text-decoration:underline;cursor:pointer;
+  }
+
   @media (max-width:520px){
     .brand{padding-top:20px}
+    .points{gap:18px}
+    .point p{font-size:12px}
     .phone-row select{min-width:104px}
   }
 
@@ -223,7 +326,7 @@
   </a>
 </div>
 
-<main class="page">
+<main class="page" id="screenSignup">
   <div class="col">
     <span class="eyebrow">Almost there</span>
 
@@ -256,11 +359,6 @@
         <p class="error" id="e-phone"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 7.5v5M12 16.2v.1"/></svg> <span class="error-text">Please enter your phone number.</span></p>
       </div>
 
-      <p class="formerror" id="formError" role="alert">
-        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 7.5v5M12 16.2v.1"/></svg>
-        <span id="formErrorText"></span>
-      </p>
-
       <button class="cta" type="submit" id="submit">
         <span id="submitLabel">Build my FREE Store</span>
         <span class="arrow" aria-hidden="true">
@@ -284,6 +382,61 @@
       </p>
     </form>
 
+  </div>
+</main>
+
+<main class="page screen-call" id="screenCall" hidden>
+  <div class="col">
+    <span class="eyebrow">Your next step</span>
+
+    <h1>
+      <span class="ring" aria-hidden="true">
+        <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72c.13.96.36 1.9.7 2.81a2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45c.9.34 1.85.57 2.81.7A2 2 0 0 1 22 16.92Z"/></svg>
+      </span>Answer the call.
+    </h1>
+
+    <div class="player" id="player">
+      <video class="player-video" id="video" playsinline preload="none">
+        <source src="thankyouv3.mp4" type="video/mp4">
+      </video>
+      <span class="player-art" aria-hidden="true"></span>
+      <button class="playbtn" id="playbtn" type="button" aria-label="Play the intro video">
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M8 5.14v13.72a1 1 0 0 0 1.54.84l10.28-6.86a1 1 0 0 0 0-1.68L9.54 4.3A1 1 0 0 0 8 5.14Z"/></svg>
+      </button>
+      <button class="unmute" id="unmute" type="button" hidden>
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M11 5 6 9H2v6h4l5 4V5Z"/><path d="M15.5 8.5a5 5 0 0 1 0 7M19 5a9 9 0 0 1 0 14"/></svg>
+        Tap for sound
+      </button>
+      <span class="track"><i id="bar"></i></span>
+    </div>
+
+    <button class="cta" id="claimCta" data-state="locked" disabled>
+      <span id="claimLabel">Claim My FREE Store</span>
+      <span class="lock">
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="4" y="11" width="16" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg>
+        <span id="count"></span>
+      </span>
+    </button>
+
+    <p class="callerror" id="callError" role="alert" hidden>
+      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 7.5v5M12 16.2v.1"/></svg>
+      <span>We couldn't save your details, so the call won't reach you. <button type="button" id="callErrorBack">Go back and try again</button></span>
+    </p>
+
+    <div class="points">
+      <div class="point">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="2" y="6" width="20" height="12" rx="2"/><path d="M6 12h4M14 12h4"/></svg>
+        <p>The call is free to pickup</p>
+      </div>
+      <div class="point">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 12.79A9 9 0 1 1 11.21 3a7 7 0 0 0 9.79 9.79Z"/></svg>
+        <p>Turn off Do Not Disturb</p>
+      </div>
+      <div class="point">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m12 4 10 5-10 5L2 9l10-5Z"/><path d="M6 11v4c0 1.66 2.69 3 6 3s6-1.34 6-3v-4"/></svg>
+        <p>Get the full course on the call</p>
+      </div>
+    </div>
   </div>
 </main>
 
@@ -314,8 +467,6 @@
                    location.hostname === '127.0.0.1';
 
   var form   = document.getElementById('signup');
-  var btn    = document.getElementById('submit');
-  var label  = document.getElementById('submitLabel');
   var phoneInput = document.getElementById('phone');
   var iti = null;
 
@@ -385,15 +536,6 @@
         return saveLead(lead);
       });
     });
-  }
-
-  function showFormError(message){
-    document.getElementById('formErrorText').textContent = message;
-    document.getElementById('formError').classList.add('show');
-  }
-
-  function clearFormError(){
-    document.getElementById('formError').classList.remove('show');
   }
 
   /* Each field reports 'ok', 'empty' or 'invalid'; empty and invalid read
@@ -566,7 +708,6 @@
 
   form.addEventListener('submit', function(e){
     e.preventDefault();
-    clearFormError();
 
     var first = null;
     Object.keys(fields).forEach(function(k){
@@ -586,23 +727,139 @@
       created_at : new Date().toISOString()
     };
 
-    btn.setAttribute('aria-busy','true');
-    label.textContent = 'Building your store\u2026';
+    /* Swap to the call screen and start the video inside this same click. A
+       browser only permits sound while the user's gesture is still live —
+       roughly five seconds in Chrome — so the webhook cannot be waited on
+       first. It runs alongside, and the call screen says so if it fails. */
+    goCall();
 
-    function advance(){
-      location.href = NEXT_SCREEN;
-    }
-
-    function failed(err){
+    saveLeadWithRetry(lead).catch(function(err){
       if (window.console) console.error('lead not saved', err);
-      btn.removeAttribute('aria-busy');
-      label.textContent = 'Build my FREE Store';
-      /* Deliberately not sent on to the call screen: that screen promises a
-         call within seconds, and nobody is going to place it. */
-      showFormError("We couldn't save your details. Please check your connection and try again.");
-    }
+      document.getElementById('callError').hidden = false;
+    });
+  });
 
-    saveLeadWithRetry(lead).then(advance, failed);
+  /* ------------------------------------------------------------------
+     THE CALL SCREEN
+     Same player as call.html, with one difference: here it opens with sound,
+     because the submit click is still in force. Keep the two in step.
+     ------------------------------------------------------------------ */
+  var screenSignup = document.getElementById('screenSignup');
+  var screenCall   = document.getElementById('screenCall');
+  var video        = document.getElementById('video');
+  var player       = document.getElementById('player');
+  var playbtn      = document.getElementById('playbtn');
+  var unmuteBtn    = document.getElementById('unmute');
+  var bar          = document.getElementById('bar');
+  var claimCta     = document.getElementById('claimCta');
+  var claimLabel   = document.getElementById('claimLabel');
+  var count        = document.getElementById('count');
+
+  function secs(n){ return Math.max(0, Math.ceil(n)); }
+  function known(){ return isFinite(video.duration) && video.duration > 0; }
+
+  video.addEventListener('loadedmetadata', function(){
+    if (known()) count.textContent = secs(video.duration);
+  });
+
+  video.addEventListener('timeupdate', function(){
+    if (!known()) return;
+    bar.style.width = Math.min(100, (video.currentTime / video.duration) * 100) + '%';
+    count.textContent = secs(video.duration - video.currentTime);
+  });
+
+  video.addEventListener('play',  function(){ player.classList.add('started','playing'); });
+  video.addEventListener('pause', function(){ player.classList.remove('playing'); });
+
+  video.addEventListener('ended', function(){
+    player.classList.remove('playing');
+    bar.style.width = '100%';
+    count.textContent = '0';
+    if (claimCta.dataset.state === 'unlocked') return;
+    claimCta.dataset.state = 'unlocked';
+    claimCta.disabled = false;
+    claimLabel.textContent = 'Claim My FREE Store  \u2192';
+  });
+
+  var askedTwice = false;
+
+  function play(withSound){
+    video.muted = !withSound;
+    var attempt = video.play();
+    if (attempt && attempt.catch) attempt.catch(function(err){
+      /* An AbortError means a load interrupted the request, not that sound was
+         refused. Asking again is right; dropping to muted would be wrong. */
+      if (withSound && err && err.name === 'AbortError' && !askedTwice){
+        askedTwice = true;
+        play(true);
+        return;
+      }
+      if (withSound){
+        /* Sound genuinely refused. Run it quietly, rather than leaving the
+           countdown stopped and the CTA locked forever. */
+        play(false);
+      } else {
+        player.classList.remove('playing');
+      }
+    });
+  }
+
+  /* Tie the offer of sound to whether there is actually none, so the button
+     cannot end up contradicting what the element is doing. */
+  video.addEventListener('volumechange', function(){
+    unmuteBtn.hidden = !video.muted;
+  });
+
+  unmuteBtn.addEventListener('click', function(e){
+    e.stopPropagation();
+    video.muted = false;
+  });
+
+  function toggle(){
+    if (video.ended) video.currentTime = 0;
+    if (video.paused) play(!video.muted); else video.pause();
+  }
+
+  player.addEventListener('click', toggle);
+  playbtn.addEventListener('click', function(e){ e.stopPropagation(); toggle(); });
+
+  claimCta.addEventListener('click', function(){
+    if (claimCta.dataset.state !== 'unlocked') return;
+    claimLabel.textContent = 'Opening Shopify\u2026';
+    // TODO: hand the user on to the Shopify "Claim your store" step.
+  });
+
+  function render(screen){
+    var onCall = (screen === 'call');
+    screenCall.hidden   = !onCall;
+    screenSignup.hidden = onCall;
+    if (!onCall && !video.paused) video.pause();
+    window.scrollTo(0, 0);
+  }
+
+  function goCall(){
+    render('call');
+    if (history.pushState) history.pushState({screen:'call'}, '', NEXT_SCREEN);
+    play(true);
+  }
+
+  function goSignup(){
+    render('signup');
+    if (history.replaceState) history.replaceState({screen:'signup'}, '', '/');
+  }
+
+  document.getElementById('callErrorBack').addEventListener('click', goSignup);
+
+  /* Back out of the call screen without stranding the user on a dead page. */
+  window.addEventListener('popstate', function(){
+    render(history.state && history.state.screen === 'call' ? 'call' : 'signup');
+  });
+
+  /* Start fetching the video once someone begins filling the form, so it is
+     ready the moment they submit — without costing every visitor 1.8MB. */
+  form.addEventListener('input', function warm(){
+    video.preload = 'auto';
+    form.removeEventListener('input', warm);
   });
 
   function phoneNumber(){
